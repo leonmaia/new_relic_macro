@@ -2,35 +2,42 @@ package com.lm.newrelic
 
 import com.newrelic.api.agent.{NewRelic, Trace}
 
+import scala.annotation.StaticAnnotation
+import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
-import language.experimental.macros
-import scala.annotation.{compileTimeOnly, StaticAnnotation}
 
-class transaction(category: String, name: String) extends StaticAnnotation {
-  def macroTransform(annottees: Any*): Unit = macro traceMacro.transaction_impl
+class hello extends StaticAnnotation {
+  def macroTransform(annottees: Any*) = macro helloMacro.impl
 }
 
-object traceMacro {
-  def transaction(annottees: Any*): Unit = macro traceMacro.transaction_impl
-
-  def transaction_impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Unit] = {
+object helloMacro {
+  def impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
     import c.universe._
-    val category = annottees.head
-    val transaction = annottees.last
+    import Flag._
 
-    c.Expr[Unit](
-      q"""
-        {
-          import com.lm.newrelic.StatsTracing.set
-          set($category, $transaction)
-        }
-      """)
+    val list = c.macroApplication.children.head.children.head.children.tail
+    val category = list.head
+    val transactionName = list.last
+
+    val result = {
+      annottees.map(_.tree).toList match {
+        case q"$mods def $name(...$paramss): $returnType = $expr" :: Nil =>
+          q"""
+            $mods def $name(...$paramss): $returnType = {
+            import com.lm.newrelic.StatsTracing.set
+            set($category, $transactionName)
+              ..$expr
+            }
+          """
+      }
+    }
+    c.Expr[Any](result)
   }
 }
 
 object StatsTracing {
   @Trace(dispatcher = true)
-  def set(category: String, name: String): Unit = {
+  def set(category: String = "testCat", name: String = "testName"): Unit = {
     println(s".............Foooo! with $category and $name")
     NewRelic.setTransactionName(category, name)
   }

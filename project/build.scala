@@ -6,9 +6,9 @@ object BuildSettings {
   val dependencies = Seq(
     "com.newrelic.agent.java" % "newrelic-api" % "3.22.0",
     "org.scala-lang" % "scala-compiler" % "2.11.7",
-    "org.scala-lang" % "scala-library"  % "2.11.7",
-    compilerPlugin("org.scalamacros" % "paradise" % "2.1.0-M5" cross CrossVersion.full)
+    "org.scala-lang" % "scala-library"  % "2.11.7"
   )
+  val paradiseVersion = "2.1.0-M5"
 
   val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "com.lm",
@@ -18,7 +18,8 @@ object BuildSettings {
     resolvers += Resolver.sonatypeRepo("snapshots"),
     resolvers += Resolver.sonatypeRepo("releases"),
     scalacOptions ++= Seq(),
-    libraryDependencies ++= dependencies
+    libraryDependencies ++= dependencies,
+    addCompilerPlugin("org.scalamacros" % "paradise" % paradiseVersion cross CrossVersion.full)
   )
 }
 
@@ -43,7 +44,7 @@ object MyBuild extends Build {
             libraryDependencies.value
           case Some((2, 10)) =>
             libraryDependencies.value ++ Seq(
-              compilerPlugin("org.scalamacros" % "paradise" % "2.1.0-M5" cross CrossVersion.full)
+              "org.scalamacros" %% "quasiquotes" % paradiseVersion
             )
         }
       }
